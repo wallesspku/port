@@ -21,7 +21,7 @@ done
 git -C port pull
 git -C .config/port_config pull
 git -C ca pull
-pip3 install -U git+https://github.com/wallesspku/utils.git
+pip3 install --force-reinstall git+https://github.com/wallesspku/utils.git
 
 tmux new-session -d -s port -n service
 sleep 3
