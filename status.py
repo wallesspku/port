@@ -11,7 +11,7 @@ import subprocess
 import threading
 import datetime
 
-from walless_utils import wait_for_network, cfg, setup_everything, whoami
+from walless_utils import cfg, setup_everything, whoami
 setup_everything()
 
 node = whoami()
@@ -346,7 +346,6 @@ def byte_str(object):
         print(type(object))
 
 if __name__ == '__main__':
-    wait_for_network()
     for argc in sys.argv:
         if 'SERVER' in argc:
             SERVER = argc.split('SERVER=')[-1]
