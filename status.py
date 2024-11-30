@@ -293,7 +293,8 @@ def get_realtime_date():
             'host': CU,
             'mark': '10010',
             'port': PROBEPORT
-        }
+        },
+        daemon=True,
     )
     t2 = threading.Thread(
         target=_ping_thread,
@@ -301,7 +302,8 @@ def get_realtime_date():
             'host': CT,
             'mark': '189',
             'port': PROBEPORT
-        }
+        },
+        daemon=True,
     )
     t3 = threading.Thread(
         target=_ping_thread,
@@ -309,7 +311,8 @@ def get_realtime_date():
             'host': CM,
             'mark': '10086',
             'port': PROBEPORT
-        }
+        },
+        daemon=True,
     )
     t5 = threading.Thread(
         target=_ping_thread,
@@ -317,16 +320,12 @@ def get_realtime_date():
             'host': EDU,
             'mark': 'edu',
             'port': PROBEPORT
-        }
+        },
+        daemon=True,
     )
     t4 = threading.Thread(
         target=_net_speed,
     )
-    t1.setDaemon(True)
-    t2.setDaemon(True)
-    t3.setDaemon(True)
-    t4.setDaemon(True)
-    t5.setDaemon(True)
     t1.start()
     t2.start()
     t3.start()
