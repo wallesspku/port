@@ -19,10 +19,9 @@ done
 # echo "connected to the internet"
 
 git -C port pull
-git -C utils pull
 git -C .config/port_config pull
 git -C ca pull
-pip install ./utils
+pip3 install git+https://github.com/wallesspku/utils.git
 
 tmux new-session -d -s port -n service
 sleep 3
