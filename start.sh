@@ -21,7 +21,7 @@ done
 git -C port pull
 git -C .config/port_config pull
 git -C ca pull
-if [ -z "USE_GIT"]; then
+if [ ! -z "USE_GIT" ]; then
     pip3 install --force-reinstall git+https://github.com/wallesspku/utils.git
 else
     git -c $WALLESS_ROOT/utils pull
