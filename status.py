@@ -96,11 +96,12 @@ def traffic():
     try:
         data_stats = json.loads(subprocess.getoutput('vnstat --json'))
         assert 1 <= node.traffic_reset_day <= 31
-        date_from = now = datetime.datetime.today()
-        if node.traffic_reset_day > now.day:
-            while date_from.month >= now.month:
+        # find the last reset day
+        date_from = datetime.datetime.today().date().replace(day=node.traffic_reset_day)
+        if date_from > datetime.datetime.today().date():
+            date_from -= datetime.timedelta(days=27)
+            while date_from.day != node.traffic_reset_day:
                 date_from -= datetime.timedelta(days=1)
-        date_from = datetime.datetime(year=date_from.year, month=date_from.month, day=node.traffic_reset_day)
         for inti_stats in data_stats['interfaces']:
             for line in inti_stats['traffic']['day']:
                 if datetime.datetime(**line['date']) >= date_from:
