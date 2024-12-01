@@ -47,12 +47,13 @@ def get_uptime():
 def get_memory():
     re_parser = re.compile(r'^(?P<key>\S*):\s*(?P<value>\d*)\s*kB')
     result = dict()
-    for line in open('/proc/meminfo'):
-        match = re_parser.match(line)
-        if not match:
-            continue
-        key, value = match.groups(['key', 'value'])
-        result[key] = int(value)
+    with open('/proc/meminfo') as f:
+        for line in f:
+            match = re_parser.match(line)
+            if not match:
+                continue
+            key, value = match.groups(['key', 'value'])
+            result[key] = int(value)
     MemTotal = float(result['MemTotal'])
     MemUsed = MemTotal-float(result['MemFree'])-float(result['Buffers'])-float(result['Cached'])-float(result['SReclaimable'])
     SwapTotal = float(result['SwapTotal'])
@@ -160,7 +161,8 @@ def tupd():
     if ERROR_STATE == -2:
         n_active = -2
     elif os.path.exists('/root/.active_user'):
-        ts, n = open('/root/.active_user').read().split()
+        with open('/root/.active_user') as f:
+            ts, n = f.read().split()
         delta = abs(time.time() - int(ts))
         if delta < 1024:
             n_active = int(n)
