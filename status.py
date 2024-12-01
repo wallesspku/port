@@ -95,38 +95,26 @@ def traffic():
     NET_OUT = 0
     try:
         data_stats = json.loads(subprocess.getoutput('vnstat --json'))
-        if os.path.exists('/root/.traffic'):
-            # Format: (First line) day-of-month <SPACE> traffic (GiB) <SPACE> uni/bidirectional (u/unidirectional)
-            # Other lines: %Y%M (e.g. 202203) <SPACE> adjustment-to-the-traffic (GiB) (e.g. -200)
-            traffic_file = open('/root/.traffic').read().strip().split('\n')
-            traffic_rc = traffic_file[0].split()
-            refresh_day = int(traffic_rc[0])
-            assert refresh_day <= 31
-            date_from = now = datetime.datetime.today()
-            if refresh_day > now.day:
-                while date_from.month >= now.month:
-                    date_from -= datetime.timedelta(days=1)
-            date_from = datetime.datetime(year=date_from.year, month=date_from.month, day=refresh_day)
-            for inti_stats in data_stats['interfaces']:
-                for line in inti_stats['traffic']['day']:
-                    if datetime.datetime(**line['date']) >= date_from:
-                        NET_IN += line['rx']
-                        NET_OUT += line['tx']
-            if len(traffic_rc) > 2:
-                adjustment = 0
-                for line in traffic_file[1:]:
-                    line = line.split()
-                    if len(line) == 2 and line[0] == date_from.strftime('%Y%m'):
-                        adjustment = int(line[1])
-                traffic_limit, is_unidirectional = int(traffic_rc[1]), traffic_rc[2] in ['unidirectional', 'u']
+        assert 1 <= node.traffic_reset_day <= 31
+        date_from = now = datetime.datetime.today()
+        if node.traffic_reset_day > now.day:
+            while date_from.month >= now.month:
+                date_from -= datetime.timedelta(days=1)
+        date_from = datetime.datetime(year=date_from.year, month=date_from.month, day=node.traffic_reset_day)
+        for inti_stats in data_stats['interfaces']:
+            for line in inti_stats['traffic']['day']:
+                if datetime.datetime(**line['date']) >= date_from:
+                    NET_IN += line['rx']
+                    NET_OUT += line['tx']
+
+            if node.traffic_limit is not None:
                 # adjustment is added to traffic used, not to the limit; so we deduct adjustment from limit.
-                cur_data = NET_OUT if is_unidirectional else NET_IN + NET_OUT
-                traffic_limit -= adjustment
-                traffic_limit *= 1024 * 1024 * 1024
+                # unit is GiB
+                traffic_limit = node.traffic_limit * 1024 ** 3
                 alert_path = '/tmp/stop_walless'
-                if cur_data > traffic_limit * 0.999:
+                if NET_OUT > traffic_limit * 0.999 and os.path.exists('/root/.stop_when_exceed'):
                     if not os.path.exists(alert_path):
-                        print('current traffic:', cur_data/1024**3, '; quota:', traffic_limit/1024**3)
+                        print('current traffic:', NET_OUT/1024**3, '; quota:', traffic_limit/1024**3)
                         print('Trying to stop walless')
                         os.system('touch ' + alert_path)
                     ERROR_STATE = -2
