@@ -117,7 +117,8 @@ class PortBase:
         action(self.upload_traffic, 'traffic uploading')
 
         logger.warning(f'Loop done in {time.time() - loop_since:.3f}s. {self.n_active}/{self.n_user} active users.')
-        open(active_user, 'w').write('{} {}'.format(int(time.time()), self.n_active))
+        with open(active_user, 'w') as fp:
+            fp.write('{} {}'.format(int(time.time()), self.n_active))
 
     def check_node_update(self):
         new_node = db.get_node_by_uuid(self.node_obj.uuid)
