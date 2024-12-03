@@ -27,7 +27,6 @@ class HAProxy(PortBase):
         logger.warning('Listening for incoming http connection.')
 
     def dump_haproxy_cfg(self):
-        ha_cfg = haproxy_cfg.replace('WALLESS_ROOT', self.root)
         # if the node has IPv6, then do not include `,ipv4`
         self.network_status.wait_for_checkups()
         self.network_status.ipv6 is not None and os.system('ip -6 route add default dev wgcf metric 99999')
@@ -49,6 +48,7 @@ listen relay{relay.relay_id}
             ha_cfg += '\n' + relay_cfg + '\n'
         if 'gre' in self.node_obj.properties:
             ha_cfg = ha_cfg[:ha_cfg.index('listen proxy')] + gre_suffix
+        ha_cfg = ha_cfg.replace('WALLESS_ROOT', self.root)
         with open('haproxy_config/haproxy.cfg', 'w') as fp:
             fp.write(ha_cfg)
 
@@ -130,9 +130,7 @@ listen relay{relay.relay_id}
             u.disable()
 
 
-# TODO: Replace HOME with WALLESS_ROOT
-
-haproxy_cfg = f'''
+haproxy_cfg = '''
 global
     maxconn 65535
     lua-load haproxy_config/h2p.lua
@@ -183,7 +181,7 @@ listen proxy
     tcp-request content reject unless !localhost
     server clear 0.0.0.0:0
     server wgcf 0.0.0.0:0 weight 0 source 0.0.0.0 interface wgcf
-    use-server wgcf if {{ var(txn.domain) -m sub -f haproxy_config/wgcf_domains.txt }}
+    use-server wgcf if { var(txn.domain) -m sub -f haproxy_config/wgcf_domains.txt }
 
 frontend main_proxy
     mode http
@@ -206,7 +204,7 @@ frontend main_proxy
     acl save  sc2_clr_gpc0(st_rate) ge 0
 
     # for illegal user, return 403 instead of 407 to fool them
-    http-request return status 403 unless {{ var(req.userid) -m found -m int gt 0 }}
+    http-request return status 403 unless { var(req.userid) -m found -m int gt 0 }
     http-request allow if !abuse save
     # tie up bots so that they cannot immediately retry their requests
     timeout tarpit 10s
@@ -217,7 +215,7 @@ frontend main_proxy
     
 '''
 
-gre_suffix = f'''
+gre_suffix = '''
 
 resolvers edns
     nameserver dnsmasq 127.0.0.1:53
@@ -248,8 +246,8 @@ listen proxy
 
 frontend main_proxy
     mode http
-    bind *:4400-4499 ssl crt {os.environ.get('HOME')}/ca/pem alpn h2,http/1.1
-    bind :::4400-4499 ssl crt {os.environ.get('HOME')}/ca/pem alpn h2,http/1.1
+    bind *:4400-4499 ssl crt WALLESS_ROOT/ca/pem alpn h2,http/1.1
+    bind :::4400-4499 ssl crt WALLESS_ROOT/ca/pem alpn h2,http/1.1
 
     # map user id (stored as the authorization) to id based on the user table (/tmp/usermap, maintained in memory)
     http-request set-var(req.userid) hdr(Proxy-Authorization),sha1,hex,map_str_int(/tmp/usermap,0)
@@ -267,7 +265,7 @@ frontend main_proxy
     acl save  sc2_clr_gpc0(st_rate) ge 0
 
     # for illegal user, return 403 instead of 407 to fool them
-    http-request return status 403 unless {{ var(req.userid) -m found -m int gt 0 }}
+    http-request return status 403 unless { var(req.userid) -m found -m int gt 0 }
     http-request allow if !abuse save
     #http-request return status 429 if abuse kill
     timeout tarpit 5s
@@ -298,8 +296,8 @@ backend h2pproxy_gre
 
 frontend main_proxy_gre
     mode http
-    bind *:14400-14499 ssl crt {os.environ.get('HOME')}/ca/pem alpn h2,http/1.1
-    bind :::14400-14499 ssl crt {os.environ.get('HOME')}/ca/pem alpn h2,http/1.1
+    bind *:14400-14499 ssl crt WALLESS_ROOT/ca/pem alpn h2,http/1.1
+    bind :::14400-14499 ssl crt WALLESS_ROOT/ca/pem alpn h2,http/1.1
     # map user id (stored as the authorization) to id based on the user table (/tmp/usermap, maintained in memory)
     http-request set-var(req.userid) hdr(Proxy-Authorization),sha1,hex,map_str_int(/tmp/usermap,0)
 
@@ -316,7 +314,7 @@ frontend main_proxy_gre
     acl save  sc2_clr_gpc0(st_rate) ge 0
 
     # for illegal user, return 403 instead of 407 to fool them
-    http-request return status 403 unless {{ var(req.userid) -m found -m int gt 0 }}
+    http-request return status 403 unless { var(req.userid) -m found -m int gt 0 }
     http-request allow if !abuse save
     http-request return status 429 if abuse kill
 
