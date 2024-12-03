@@ -28,6 +28,7 @@ class HAProxy(PortBase):
 
     def dump_haproxy_cfg(self):
         # if the node has IPv6, then do not include `,ipv4`
+        ha_cfg = haproxy_cfg
         self.network_status.wait_for_checkups()
         self.network_status.ipv6 is not None and os.system('ip -6 route add default dev wgcf metric 99999')
         ha_cfg = ha_cfg.replace('$IP$', ',ipv4' if self.network_status.ipv6 is None else '')
