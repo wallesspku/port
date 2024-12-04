@@ -31,7 +31,7 @@ fi
 # pull 
 for GITPATH in "./port" "./.config/port_config" "./.config/main_config" "./ca" "./utils" "port_config" "main_config"; 
 do
-    if [ -d $GITPATH ]; then
+    if [ -z $NO_GIT_PULL ] && [ -d $GITPATH ]; then
         git -C $GITPATH pull
     fi
 done
