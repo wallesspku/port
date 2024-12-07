@@ -124,8 +124,8 @@ class PortBase:
         new_node = db.get_node_by_uuid(self.node_obj.uuid)
 
         def has_update():
-            if new_node.node_id == -1:
-                return True
+            if new_node is None:
+                return False
             for k in ['tag', 'weight', 'properties']:
                 if getattr(new_node, k) != getattr(self.node_obj, k):
                     return True
@@ -134,21 +134,7 @@ class PortBase:
         if has_update():
             os.system('/usr/bin/rebot')
 
-    def randomly_add_traffic(self):
-        # DEBUG ONLY, WARNING!
-        print('Warning: randomly add traffic!!')
-        import random
-        users = list(self.id2user.values())
-        users = random.sample(users, len(users) // 100)
-        for u in users:
-            u.update_traffic(random.randint(0, 10*2**20), random.randint(0, 10*2**20))
-
     def run(self):
-        # self.sync_db()
-        # self.randomly_add_traffic()
-        # self.sync_db()
-        # return
-
         self.cron_mgr.new_job(CronJob('sync_db', self.sync_db, 1, 360, in_error=report_error))
 
         if 'restart' in self.node_obj.properties:
