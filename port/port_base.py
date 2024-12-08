@@ -86,6 +86,9 @@ class PortBase:
     def upload_traffic(self):
         to_update = dict()
         n_total = 0
+        # user with more than 1MB traffic will be considered as active
+        n_active = 0
+        active_threshold = 1 * 1024**2
         for u in self.id2user.values():
             u_delta, d_delta = u.diff()
             if u_delta + d_delta == 0:
@@ -94,8 +97,10 @@ class PortBase:
             if not u.need_report():
                 continue
             to_update[u.user.user_id] = (u_delta, d_delta)
+            if sum(to_update[u.user.user_id]) > active_threshold:
+                n_active += 1
             u.reset()
-        self.n_active = len(to_update)
+        self.n_active = n_active
         logger.info('Found {} pieces of updates, {} among which will be uploaded.'.format(n_total, len(to_update)))
         if len(to_update) == 0:
             return
