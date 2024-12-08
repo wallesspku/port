@@ -98,9 +98,6 @@ listen relay{relay.relay_id}
                 if uid in [0, 198964]:
                     continue
                 if uid not in self.id2user:
-                    logger.error(f'User {self.id2user[uid].user} not found!')
-                    continue
-                if uid not in self.id2user:
                     # this is a deleted account; ignore it
                     continue
                 if direction == 'in':
