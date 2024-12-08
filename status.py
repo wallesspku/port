@@ -105,7 +105,7 @@ def traffic():
                 date_from -= datetime.timedelta(days=1)
         for inti_stats in data_stats['interfaces']:
             for line in inti_stats['traffic']['day']:
-                if datetime.datetime(**line['date']) >= date_from:
+                if datetime.datetime(**line['date']).date() >= date_from:
                     NET_IN += line['rx']
                     NET_OUT += line['tx']
 
@@ -126,10 +126,7 @@ def traffic():
                         print('Resume')
                     if ERROR_STATE == -2:
                         ERROR_STATE = 0
-        else:
-            for inti_stats in data_stats['interfaces']:
-                NET_IN += inti_stats['traffic']['total']['rx']
-                NET_OUT += inti_stats['traffic']['total']['tx']
+
         if NET_IN == NET_OUT == 0:
             raise Exception
     except:
