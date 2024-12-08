@@ -76,6 +76,8 @@ listen relay{relay.relay_id}
         return hashlib.sha1(b'Basic ' + base64.b64encode(f'walless:{user.uuid}'.encode())).hexdigest().upper()
 
     def del_user(self, user: Account):
+        # removing a user will delete its from the proxy table
+        # but its traffic records will remain
         try:
             self.talk(f'del map /tmp/usermap {self.sha1_map(user.user)}\n', False)
         except Exception as e:
@@ -98,37 +100,35 @@ listen relay{relay.relay_id}
                 if uid not in self.id2user:
                     logger.error(f'User {self.id2user[uid].user} not found!')
                     continue
-                acc = self.id2user[uid]
+                if uid not in self.id2user:
+                    # this is a deleted account; ignore it
+                    continue
                 if direction == 'in':
-                    changed = acc.update_traffic(upload=size)
+                    self.id2user[uid].update_traffic(upload=size)
                 else:
-                    changed = acc.update_traffic(download=size)
-                if changed and acc.deleted:
-                    logger.warning(f'{acc.user} disabled but had activities. Try to delete it.')
-                    self.del_user(acc)
-                    acc.disable()
+                    self.id2user[uid].update_traffic(download=size)
 
     def sync_users(self):
-        new_users, var_users, del_users = self.fetch_user_config()
+        new_users, del_users = self.fetch_user_config()
 
         # If alert file exists, delete all users
         if os.path.exists('/tmp/stop_walless'):
             logger.warning('Disable all users because stop_walless exists.')
-            new_users = var_users = []
-            del_users = [u for u in self.id2user.values() if not u.deleted]
+            new_users = []
+            del_users = [u for u in self.id2user.values()]
 
-        for u in var_users + del_users:
-            self.del_user(u)
-        for u in var_users + new_users:
-            self.add_user(u)
-        if len(var_users + new_users + del_users) > 0 :
-            self.fetch_traffic()
-
-        # set the deleted flag and reset the traffic
-        for u in var_users + new_users:
-            u.enable()
         for u in del_users:
-            u.disable()
+            self.del_user(u)
+        for u in new_users:
+            self.add_user(u)
+
+        # sync its traffic with the record of haproxy, in case the user is re-enabled
+        # and had traffics before
+        # but we won't report the traffic difference to database
+        if new_users:
+            self.fetch_traffic()
+            for u in new_users:
+                u.reset()
 
 
 haproxy_cfg = '''

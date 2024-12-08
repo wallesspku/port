@@ -3,6 +3,7 @@ import random
 import os
 from datetime import datetime, timedelta
 import time
+from copy import deepcopy
 
 import pytz
 from walless_utils import Node,  db, user_pool, node_pool
@@ -26,7 +27,7 @@ class PortBase:
 
     @property
     def n_user(self):
-        return sum(not user.deleted for user in self.id2user.values())
+        return len(self.id2user)
 
     def fetch_user_config(self):
         fetched_users = user_pool.all_users()
@@ -39,44 +40,48 @@ class PortBase:
         Here we consider the following situations:
         For users in the `fetched_users`:
         1. User existed locally, enabled and no changes happened to a user -- do nothing.
-        2. User existed locally, enabled but changes happened to the user -- add the account obj to var_users.
+        2. User existed locally, enabled but changes (UUID) happened to the user -- add the account obj to var_users.
         3. User existed locally, disabled -- enable the user account and add it to new_users.
         4. User non-existed locally -- create the corresponding Account obj and add it to new_users.
         For users not in the `fetched_users`:
         5. User existed locally and enabled -- Put to the del_users
         6. User existed locally and disabled -- nothing to do
         """
-        new_users, var_users, del_users = list(), list(), list()
-        id_left = set(self.id2user.keys())
+        n_new = n_alter = n_del = 0
+        new_users, del_users = list(), list()
+        missing_user_ids = set(self.id2user.keys())
         for u in fetched_users:
+            missing_user_ids.discard(u.user_id)
             if u.user_id in self.id2user:
-                if not self.id2user[u.user_id].deleted:
-                    if not (u == self.id2user[u.user_id].user):
-                        # case 2
-                        logger.info(f'User {u} config changed.')
-                        self.id2user[u.user_id].user = u
-                        var_users.append(self.id2user[u.user_id])
-                    # else case 1
+                # this user existsed in local record
+                if u.uuid == self.id2user[u.user_id].user.uuid:
+                    # no change happened to this user
+                    pass
                 else:
-                    # case 3
-                    logger.info(f'User {u} is going to be re-enabled.')
+                    logger.warning(f'User {u} config changed.')
+                    # delete the old user. copy its uuid
+                    del_users.append(deepcopy(self.id2user[u.user_id]))
+                    # assign new uuid to local copy of this user
+                    self.id2user[u.user_id].user = u
                     new_users.append(self.id2user[u.user_id])
-            elif u.user_id not in self.id2user:
-                # case 4
+                    n_alter += 1
+            else:
+                # this is a new user. it might just register, or it is re-enabled
                 self.id2user[u.user_id] = Account(u)
                 new_users.append(self.id2user[u.user_id])
-            id_left.discard(u.user_id)
-        for uid in id_left:
-            if not self.id2user[uid].deleted:
-                # case 5
-                del_users.append(self.id2user[uid])
-                logger.info(f'User {self.id2user[uid].user} is going to be disabled.')
-            # else case 6
+                n_new += 1
 
-        if len(new_users) + len(var_users) + len(del_users) > 0:
-            logger.warning(f'Added {len(new_users)}, changed {len(var_users)}, deleted {len(del_users)}.')
+        for uid in missing_user_ids:
+            # this user existed in local record but now missing in database
+            # it might be disabled, or its balance is empty
+            del_users.append(self.id2user[uid])
+            logger.info(f'User {self.id2user[uid].user} is going to be disabled.')
+            n_del += 1
 
-        return new_users, var_users, del_users
+        if len(new_users) + len(del_users) > 0:
+            logger.warning(f'Added {n_new}, altered {n_alter}, and deleted {n_del} users.')
+
+        return new_users, del_users
 
     def upload_traffic(self):
         to_update = dict()
