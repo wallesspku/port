@@ -74,8 +74,8 @@ class PortBase:
         for uid in missing_user_ids:
             # this user existed in local record but now missing in database
             # it might be disabled, or its balance is empty
-            del_users.append(self.id2user[uid])
             logger.info(f'User {self.id2user[uid].user} is going to be disabled.')
+            del_users.append(self.id2user.pop(uid))
             n_del += 1
 
         if len(new_users) + len(del_users) > 0:
