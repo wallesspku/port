@@ -39,17 +39,6 @@ class PortBase:
             fetched_users = list(filter(lambda x: x.balance > 1024, fetched_users))
         fetched_users = list(filter(lambda x: self.node_obj.can_be_used_by(x.tag), fetched_users))
 
-        """
-        Here we consider the following situations:
-        For users in the `fetched_users`:
-        1. User existed locally, enabled and no changes happened to a user -- do nothing.
-        2. User existed locally, enabled but changes (UUID) happened to the user -- add the account obj to var_users.
-        3. User existed locally, disabled -- enable the user account and add it to new_users.
-        4. User non-existed locally -- create the corresponding Account obj and add it to new_users.
-        For users not in the `fetched_users`:
-        5. User existed locally and enabled -- Put to the del_users
-        6. User existed locally and disabled -- nothing to do
-        """
         n_new = n_alter = n_del = 0
         new_users, del_users = list(), list()
         missing_user_ids = set(self.id2user.keys())

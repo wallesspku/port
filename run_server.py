@@ -31,12 +31,15 @@ def run():
         try:
             me = whoami(ns=ns, debug=args.debug)
             if me is None:
-                logger.warning('Node not found in db.')
-                time.sleep(10)
+                sleep_time = 60
+                logger.warning(f'Node not found in db. Will try again in {sleep_time} sec.')
+                time.sleep(sleep_time)
+                continue
             logger.warning(f'I am {me.name} with IP {me.ip(4)}. My tags are: {me.tag}.')
             job = HAProxy(me, network_status=ns)
             job.run()
         except KeyboardInterrupt:
+            logger.warning('KeyboardInterrupt. Exiting.')
             return
         except Exception as e:
             logger.error(f'Error: {e}')
