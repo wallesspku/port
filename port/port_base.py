@@ -4,15 +4,18 @@ import os
 from datetime import datetime, timedelta
 import time
 from copy import deepcopy
+import logging
 
 import pytz
 from walless_utils import Node,  db, user_pool, node_pool
 from walless_utils.network_status import NetworkStatus
 from walless_utils import EditReservior
 
-from .utils import active_user, logger, restart, report_error
+from .utils import report_active_user, restart, report_error
 from .account import Account
 from .cron import CronJob, CronManager
+
+logger = logging.getLogger('walless')
 
 
 class PortBase:
@@ -100,6 +103,7 @@ class PortBase:
             if sum(to_update[u.user.user_id]) > active_threshold:
                 n_active += 1
             u.reset()
+        report_active_user(n_active)
         self.n_active = n_active
         logger.info('Found {} pieces of updates, {} among which will be uploaded.'.format(n_total, len(to_update)))
         if len(to_update) == 0:
@@ -127,8 +131,6 @@ class PortBase:
         action(self.upload_traffic, 'traffic uploading')
 
         logger.warning(f'Loop done in {time.time() - loop_since:.3f}s. {self.n_active}/{self.n_user} active users.')
-        with open(active_user, 'w') as fp:
-            fp.write('{} {}'.format(int(time.time()), self.n_active))
 
     def check_node_update(self):
         new_node = db.get_node_by_uuid(self.node_obj.uuid)

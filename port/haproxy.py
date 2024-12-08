@@ -5,11 +5,14 @@ import base64
 import hashlib
 from subprocess import check_output
 import subprocess
+import logging
 
 from walless_utils import User
 
 from .port_base import PortBase, Account
-from .utils import haproxy_executable, logger
+from .utils import haproxy_executable
+
+logger = logging.getLogger('walless')
 
 
 class HAProxy(PortBase):

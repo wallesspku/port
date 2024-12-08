@@ -4,8 +4,11 @@ from dataclasses import dataclass, field
 import time
 import traceback
 from threading import Thread
+import logging
 
-from .utils import logger, restart
+from .utils import restart
+
+logger = logging.getLogger('walless')
 
 
 @dataclass()
